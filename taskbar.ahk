@@ -1,10 +1,10 @@
-﻿#Persistent
+#Persistent
 #SingleInstance Force
 
 ; === CONFIGURATION ===
 TriggerHeight := 5      ; How close to bottom to SHOW the bar (pixels)
-HideBuffer := 10        ; Extra pixels above the taskbar to keep it open (for safety)
-CheckFreq := 50         ; Check faster (50ms) for smoother responsiveness
+HideBuffer := 10        ; Extra pixels above taskbar to keep it open
+CheckFreq := 50         ; Check speed (ms)
 
 ; Variables to track state
 IsVisible := false
@@ -12,14 +12,32 @@ IsVisible := false
 SetTimer, SmartBarLogic, %CheckFreq%
 return
 
+; ==============================
+; 🖱️ DESKTOP ICON TOGGLER
+; ==============================
+; Trigger: Middle Mouse Button (Wheel Click) on Desktop
+#If MouseIsOverDesktop()
+MButton::
+    ControlGet, hListView, Hwnd,, SysListView321, ahk_class Progman
+    if !hListView ; Try WorkerW if Progman fails (Windows 10/11 fallback)
+        ControlGet, hListView, Hwnd,, SysListView321, ahk_class WorkerW
+    
+    if DllCall("IsWindowVisible", "UInt", hListView)
+        WinHide, ahk_id %hListView%
+    else
+        WinShow, ahk_id %hListView%
+return
+#If ; Reset context
+
+; ==============================
+; 🖥️ SMART TASKBAR LOGIC
+; ==============================
 SmartBarLogic:
-    ; 1. Fullscreen Check (Gaming Mode) - Keeps it hidden
+    ; 1. Fullscreen Check (Gaming Mode) - Keeps taskbar hidden
     if IsFullscreen()
     {
-        if (IsVisible) ; Force hide if we entered fullscreen
-        {
+        if (IsVisible)
             HideTaskbar()
-        }
         return
     }
 
@@ -29,32 +47,21 @@ SmartBarLogic:
     
     ; Get the actual height of the taskbar dynamically
     WinGetPos, , , , TBHeight, ahk_class Shell_TrayWnd
-    ; If TBHeight is 0 (hidden), assume a standard height (e.g., 48) to avoid bugs
     SafeTBHeight := (TBHeight > 0) ? TBHeight : 48
     
-    ; === LOGIC CORE ===
-    
+    ; 3. Logic Core
     if (!IsVisible) 
     {
-        ; CASE A: Taskbar is HIDDEN. 
-        ; We only show it if mouse is at the very bottom edge.
+        ; CASE A: Taskbar is HIDDEN. Show if mouse is at bottom edge.
         if (MouseY >= A_ScreenHeight - TriggerHeight)
-        {
             ShowTaskbar()
-        }
     }
     else 
     {
-        ; CASE B: Taskbar is VISIBLE.
-        ; We KEEP it visible as long as mouse is inside the taskbar area.
-        ; (Screen Height - Taskbar Height - Buffer)
+        ; CASE B: Taskbar is VISIBLE. Keep it until mouse leaves the area.
         CutoffPoint := A_ScreenHeight - SafeTBHeight - HideBuffer
-        
         if (MouseY < CutoffPoint)
-        {
-            ; Mouse has moved UP and OUT of the taskbar area -> Hide it
             HideTaskbar()
-        }
     }
 return
 
@@ -73,7 +80,7 @@ HideTaskbar() {
     IsVisible := false
 }
 
-; === FULLSCREEN DETECTION ===
+; === HELPERS ===
 IsFullscreen() {
     WinGet, winID, ID, A
     if !winID
@@ -85,6 +92,12 @@ IsFullscreen() {
     return (X = 0 && Y = 0 && W = A_ScreenWidth && H = A_ScreenHeight)
 }
 
+MouseIsOverDesktop() {
+    MouseGetPos,,, WinID
+    WinGetClass, Class, ahk_id %WinID%
+    return (Class = "Progman" || Class = "WorkerW")
+}
+
 ; === MANUAL OVERRIDE (F12) ===
 F12::
     Suspend
@@ -92,6 +105,6 @@ F12::
         SoundBeep, 500, 200
     } else {
         SoundBeep, 1000, 200
-        IsVisible := false ; Reset state on resume
+        IsVisible := false
     }
 return
