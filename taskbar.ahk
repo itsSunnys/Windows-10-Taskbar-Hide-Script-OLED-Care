@@ -121,9 +121,10 @@ MouseIsOverDesktop() {
 F12::
     Suspend
     if (A_IsSuspended) {
-        SoundBeep, 500, 200
+        SoundBeep, 500, 300
     } else {
         SoundBeep, 1000, 200
         IsVisible := false
     }
 return
+
