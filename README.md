@@ -33,3 +33,5 @@ The script operates using a simple **State-Based Timer** logic:
 3.  **Startup:** Place a shortcut to the `.ahk` file in your Windows Startup Folder to ensure it runs automatically upon login.
 
     - *(To quickly open the Startup Folder, press `Win + R` and type `shell:startup`)*
+
+Best of Luck!
